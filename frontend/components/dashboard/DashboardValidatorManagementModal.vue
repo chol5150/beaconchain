@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import type { DataTableSortEvent } from 'primevue/datatable'
 import { warn } from 'vue'
 import {
   BcDialogConfirm,
@@ -16,7 +15,6 @@ import type {
 import type { Cursor } from '~/types/datatable'
 import type { NumberOrString } from '~/types/value'
 
-import type { PathValues } from '~/types/customFetch'
 import type { InternalPostSearchResponse } from '~/types/api/search'
 
 const { t: $t } = useTranslation()
@@ -25,8 +23,6 @@ const { fetch } = useCustomFetch()
 const { width } = useWindowSize()
 
 const dialog = useDialog()
-
-const visible = defineModel<boolean>()
 
 const validatorDashboardOverviewStore = useValidatorDashboardOverviewStore()
 const {
@@ -47,19 +43,26 @@ const {
   premium_perks,
 } = useUserStore()
 
-const initialQuery = {
-  limit: pageSize.value,
-  sort: 'index:asc',
-}
+// const initialQuery = {
+//   limit: pageSize.value,
+//   sort: 'index:asc',
+// }
+
+// const data = ref<GetValidatorDashboardValidatorsResponse | undefined>()
 
 const {
-  bounce: setQuery,
-  instant: instantQuery,
-  temp: tempQuery,
-  value: query,
-} = useDebounceValue<PathValues | undefined>(initialQuery, 500)
+  data,
+  status,
+} = useAsyncData(
+  () => fetch<GetValidatorDashboardValidatorsResponse>('DASHBOARD_VALIDATOR_MANAGEMENT', {
+    query: {
+      limit: pageSize.value,
+    },
+  },
+  {
+    dashboardKey: dashboardKey.value,
+  }))
 
-const data = ref<GetValidatorDashboardValidatorsResponse | undefined>()
 const selected = ref<VDBManageValidatorsTableRow[]>()
 const hasNoOpenDialogs = ref(true)
 
@@ -73,18 +76,13 @@ const size = computed(() => {
   }
 })
 
-const resetData = () => {
-  data.value = undefined
-  selected.value = []
-  selectedGroup.value = -1
-  cursor.value = undefined
-  instantQuery(initialQuery)
-}
-
-const onClose = () => {
-  resetData()
-  visible.value = false
-}
+// const resetData = () => {
+//   data.value = undefined
+//   selected.value = []
+//   selectedGroup.value = -1
+//   cursor.value = undefined
+//   instantQuery(initialQuery)
+// }
 
 const mapIndexOrPubKey = (
   validators?: VDBManageValidatorsTableRow[],
@@ -113,8 +111,18 @@ const changeGroup = async (body: PostValidatorDashboardValidatorsRequest, groupI
     },
     { dashboardKey: dashboardKey.value },
   ).then(() => {
-    loadData()
+    // loadData()
     refreshOverview(dashboardKey.value)
+  }).then(() => {
+    resetInput()
+  }).catch((error) => {
+    if (error.statusCode === 403) {
+      dialog.open(BcPremiumModal, {
+        data: {
+          description: $t('dashboard.validator.management.validators_limit_exceeded'),
+        },
+      })
+    }
   })
 }
 
@@ -137,7 +145,7 @@ const removeValidators = async (validators?: NumberOrString[]) => {
     { dashboardKey: dashboardKey.value },
   )
 
-  loadData()
+  // loadData()
   refreshOverview(dashboardKey.value)
 }
 
@@ -161,68 +169,68 @@ const editSelected = () => {
   })
 }
 
-const onSort = (sort: DataTableSortEvent) => {
-  setQuery(setQuerySort(sort, query?.value))
-}
+// const onSort = (sort: DataTableSortEvent) => {
+//   setQuery(setQuerySort(sort, query?.value))
+// }
 
-const setCursor = (value: Cursor) => {
-  cursor.value = value
-  setQuery(setQueryCursor(value, query?.value))
-}
+// const setCursor = (value: Cursor) => {
+//   cursor.value = value
+//   setQuery(setQueryCursor(value, query?.value))
+// }
 
-const setPageSize = (value: number) => {
-  pageSize.value = value
-  setQuery(setQueryPageSize(value, query?.value))
-}
+// const setPageSize = (value: number) => {
+//   pageSize.value = value
+//   setQuery(setQueryPageSize(value, query?.value))
+// }
 
-const setSearch = (value?: string) => {
-  setQuery(setQuerySearch(value, query?.value))
-}
+// const setSearch = (value?: string) => {
+//   setQuery(setQuerySearch(value, query?.value))
+// }
 
-watch(selectedGroup, (value) => {
-  setQuery({
-    ...query?.value,
-    group_id: value,
-  })
-})
+// watch(selectedGroup, (value) => {
+//   setQuery({
+//     ...query?.value,
+//     group_id: value,
+//   })
+// })
 
-const loadData = async () => {
-  if (dashboardKey.value) {
-    const testQ = JSON.stringify(query.value)
-    const result = await fetch<GetValidatorDashboardValidatorsResponse>(
-      'DASHBOARD_VALIDATOR_MANAGEMENT',
-      undefined,
-      { dashboardKey: dashboardKey.value },
-      query.value,
-    )
+// const loadData = async () => {
+//   if (dashboardKey.value) {
+//     const testQ = JSON.stringify(query.value)
+//     const result = await fetch<GetValidatorDashboardValidatorsResponse>(
+//       'DASHBOARD_VALIDATOR_MANAGEMENT',
+//       undefined,
+//       { dashboardKey: dashboardKey.value },
+//       query.value,
+//     )
 
-    // Make sure that during loading the query did not change
-    if (testQ === JSON.stringify(query.value)) {
-      data.value = result
-      selected.value = []
-    }
-  }
-  else {
-    data.value = {
-      data: [],
-      paging: {},
-    }
-  }
-}
+//     // Make sure that during loading the query did not change
+//     if (testQ === JSON.stringify(query.value)) {
+//       data.value = result
+//       selected.value = []
+//     }
+//   }
+//   else {
+//     data.value = {
+//       data: [],
+//       paging: {},
+//     }
+//   }
+// }
 
-watch(
-  () => [
-    dashboardKey.value,
-    visible.value,
-    query.value,
-  ],
-  () => {
-    if (visible.value) {
-      loadData()
-    }
-  },
-  { immediate: true },
-)
+// watch(
+//   () => [
+//     dashboardKey.value,
+//     visible.value,
+//     query.value,
+//   ],
+//   () => {
+//     if (visible.value) {
+//       loadData()
+//     }
+//   },
+//   { immediate: true },
+// )
 
 const switchValidatorGroup = (
   row: VDBManageValidatorsTableRow,
@@ -337,28 +345,31 @@ const handleSubmit = (item: InternalPostSearchResponse['data'][number] | undefin
     ...(type === 'validators_by_graffiti' && { graffiti: value.graffiti }),
   },
   selectedGroup.value,
-  ).then(() => {
-    resetInput()
-  }).catch((error) => {
-    if (error.statusCode === 403) {
-      dialog.open(BcPremiumModal, {
-        data: {
-          description: $t('dashboard.validator.management.validators_limit_exceeded'),
-        },
-      })
-    }
-  })
+  )
 }
 const inputValidator = ref('')
+const onSetSearch = (value?: string) => {
+  console.log(value)
+}
+
+const emit = defineEmits<{
+  (e: 'close'): void,
+}>()
+const isVisible = ref(true)
+const close = () => {
+  console.log('👉', 'close')
+  isVisible.value = false
+  emit('close')
+}
 </script>
 
 <template>
   <BcDialog
-    v-model="visible"
+    v-model="isVisible"
     :header="$t('dashboard.validator.management.title')"
     :close-on-escape="hasNoOpenDialogs"
     class="validator-managment-modal-container"
-    @update:visible="(visible: boolean) => !visible && resetData()"
+    @hide="close"
   >
     <template
       v-if="!size.showWithdrawalCredentials"
@@ -374,7 +385,7 @@ const inputValidator = ref('')
             : 'dashboard.validator.summary.search_placeholder',
         )
       "
-      @set-search="setSearch"
+      @set-search="onSetSearch"
     >
       <template #header-left>
         <span v-if="size.showWithdrawalCredentials">
@@ -407,7 +418,8 @@ const inputValidator = ref('')
         <ClientOnly fallback-tag="span">
           <BcTable
             v-model:selection="selected"
-            :data
+            :data="data ?? undefined"
+            :loading="status === 'pending'"
             data-key="public_key"
             :expandable="size.expandable"
             selection-mode="multiple"
@@ -604,7 +616,7 @@ const inputValidator = ref('')
             <template #bc-table-footer-right>
               <Button
                 :label="$t('navigation.done')"
-                @click="onClose"
+                @click="close"
               />
             </template>
           </BcTable>

@@ -341,12 +341,17 @@ const editDashboard = () => {
 </script>
 
 <template>
-  <DashboardGroupManagementModal v-model="manageGroupsModalVisisble" />
-  <DashboardValidatorManagementModal
-    v-if="dashboardType == 'validator'"
+  <DashboardGroupManagementModal
+    v-if="manageGroupsModalVisisble"
+  />
+  <LazyDashboardValidatorManagementModal
+    v-if="dashboardType == 'validator' && manageValidatorsModalVisisble"
     v-model="manageValidatorsModalVisisble"
   />
   <div class="header-row">
+    <pre>
+      {{ manageValidatorsModalVisisble }}
+    </pre>
     <div class="h1 dashboard-title">
       {{ title }}
     </div>
